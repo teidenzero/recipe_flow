@@ -2,6 +2,7 @@ import { MarkerType } from "reactflow";
 import { NodeKinds } from "../constants/nodeKinds";
 import { validateGraph, simulateExecute } from "./graphUtils";
 import { exportRecipe, importRecipe } from "./recipeIO";
+import { extractNutrients } from "./nutritionProvider";
 
 export function runTests(logFn = console.log) {
   const results = [];
@@ -85,9 +86,29 @@ export function runTests(logFn = console.log) {
     assert("Import supplies edge id", typeof e.id === "string" && e.id.length > 0);
     assert("Import sets edge defaults", e.type === "bezier" && e.markerEnd && e.markerEnd.type === MarkerType.ArrowClosed);
   })();
+  (() => {
+    const sample = {
+      nutriments: {
+        "energy-kcal_100g": 140,
+        proteins_100g: 3.5,
+        fat_100g: 5,
+        carbohydrates_100g: 18,
+      },
+      url: "https://world.openfoodfacts.org/product/1234567890/sample",
+      product_name: "Sample Sauce",
+      brands: "Sample Brand",
+      code: "1234567890",
+    };
+    const info = extractNutrients(sample);
+    assert(
+      "extractNutrients maps macros correctly",
+      info.calories === 140 && info.protein === 3.5 && info.fat === 5 && info.carbs === 18
+    );
+    assert("extractNutrients exposes metadata", info.productName === sample.product_name && info.barcode === sample.code);
+  })();
   const passed = results.filter((r) => r.pass).length;
   const total = results.length;
   const summary = `Tests: ${passed}/${total} passed`;
-  logFn([summary, ...results.map((r) => `${r.pass ? "✅" : "❌"} ${r.name}`)].join("\n"));
+  logFn([summary, ...results.map((r) => `${r.pass ? "[OK]" : "[FAIL]"} ${r.name}`)].join("\n"));
   return { passed, total };
 }
