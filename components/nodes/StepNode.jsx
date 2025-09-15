@@ -1,7 +1,7 @@
 import React from "react";
 import { Handle, Position } from "reactflow";
 
-const baseNodeStyle = "rounded-2xl shadow p-3 border bg-white min-w-52";
+const baseNodeStyle = "node step-node";
 
 export default function StepNode({ data }) {
   return (
