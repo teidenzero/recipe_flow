@@ -2,7 +2,7 @@ import { MarkerType } from "reactflow";
 import { NodeKinds } from "../constants/nodeKinds";
 import { validateGraph, simulateExecute } from "./graphUtils";
 import { exportRecipe, importRecipe } from "./recipeIO";
-import { extractNutrients } from "./nutritionProvider";
+import { extractNutrients, adjustNutritionForAmount } from "./nutritionProvider";
 
 export function runTests(logFn = console.log) {
   const results = [];
@@ -102,9 +102,45 @@ export function runTests(logFn = console.log) {
     const info = extractNutrients(sample);
     assert(
       "extractNutrients maps macros correctly",
-      info.calories === 140 && info.protein === 3.5 && info.fat === 5 && info.carbs === 18
+      info.perReference.values.calories === 140 &&
+        info.perReference.values.protein === 3.5 &&
+        info.perReference.values.fat === 5 &&
+        info.perReference.values.carbs === 18
     );
-    assert("extractNutrients exposes metadata", info.productName === sample.product_name && info.barcode === sample.code);
+    const scaled = adjustNutritionForAmount(info, "50 g");
+    assert(
+      "adjustNutrition scales macros for amount",
+      scaled.values.calories === 70 &&
+        scaled.values.protein === 1.75 &&
+        scaled.values.fat === 2.5 &&
+        scaled.values.carbs === 9
+    );
+    assert("extractNutrients exposes metadata", scaled.productName === sample.product_name && scaled.barcode === sample.code);
+  })();
+  (() => {
+    const servingOnly = {
+      nutriments: {
+        "energy-kcal_100g": 375,
+        proteins_100g: 6.25,
+        carbohydrates_100g: 87.5,
+        fat_100g: 0,
+      },
+      nutrition_data_per: "serving",
+      serving_size: "30 g",
+    };
+    const info = extractNutrients(servingOnly);
+    assert(
+      "fallback reference defaults to 100 g",
+      info.perReference.quantity === 100 && info.perReference.unit === "g"
+    );
+    const scaled = adjustNutritionForAmount(info, "30 g");
+    assert(
+      "scales fallback reference for ingredient amount",
+      scaled.values.calories === 112.5 &&
+        scaled.values.protein === 1.875 &&
+        scaled.values.carbs === 26.25
+    );
+    assert("no warning when amount parses", !scaled.warning);
   })();
   const passed = results.filter((r) => r.pass).length;
   const total = results.length;

@@ -55,7 +55,8 @@ Visit http://localhost:5173 (or the URL shown in your terminal) in your browser.
 Ingredient nodes include a Nutrition Lookup helper powered by [Open Food Facts](https://world.openfoodfacts.org/).
 
 - Search by product name (defaulting to the ingredient label) or enter a barcode
-- Click "Fetch by name" or "Fetch by barcode" to pull calories, protein, fat, and carbs per 100g
+- Click "Fetch by name" or "Fetch by barcode" to pull calories, protein, fat, and carbs per 100g (or per serving when available)
+- Nutrition values automatically scale to the ingredient amount when the units are compatible (g, kg, mg, lb, oz, ml, l, tsp, tbsp, cup)
 - The fetched data is stored on the node and displayed both in the inspector and on the ingredient node itself
 - Use "Clear nutrition data" if you want to remove the stored values
 
@@ -91,3 +92,4 @@ Feel free to open issues and submit pull requests. Please make sure to run tests
 ## License
 
 ISC
+

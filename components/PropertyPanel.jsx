@@ -1,23 +1,89 @@
 import React, { useEffect, useState } from "react";
 import { NodeKinds } from "../constants/nodeKinds";
-import { fetchNutrition, fetchNutritionByBarcode } from "../utils/nutritionProvider";
+import { adjustNutritionForAmount, fetchNutrition, fetchNutritionByBarcode } from "../utils/nutritionProvider";
+
+const nutritionMetrics = [
+  { key: "calories", label: "Calories", suffix: "kcal" },
+  { key: "protein", label: "Protein", suffix: "g" },
+  { key: "fat", label: "Fat", suffix: "g" },
+  { key: "carbs", label: "Carbs", suffix: "g" },
+];
+
+function formatNumeric(value) {
+  if (value == null || value === "") return "?";
+  const num = Number(value);
+  if (!Number.isFinite(num)) return "?";
+  if (Math.abs(num) >= 100) return num.toFixed(0);
+  if (Math.abs(num - Math.round(num)) < 0.01) return Math.round(num).toString();
+  return num.toFixed(2).replace(/\.0+$|0+$/g, "");
+}
+
+function formatQuantity(quantity) {
+  if (quantity == null) return "?";
+  const num = Number(quantity);
+  if (!Number.isFinite(num)) return String(quantity);
+  if (Math.abs(num - Math.round(num)) < 0.01) return Math.round(num).toString();
+  return num.toFixed(2).replace(/\.0+$|0+$/g, "");
+}
+
+function describeAmount(entry) {
+  if (!entry) return null;
+  const qty = formatQuantity(entry.quantity);
+  const unit = entry.displayUnit || entry.unit || "";
+  return `${qty}${unit ? ` ${unit}` : ""}`.trim();
+}
+
+function summarizeMetrics(values) {
+  if (!values) return "";
+  return nutritionMetrics
+    .map((metric) => {
+      const value = formatNumeric(values[metric.key]);
+      if (value === "?") return null;
+      return `${metric.label.toLowerCase()} ${value}${metric.suffix ? ` ${metric.suffix}` : ""}`;
+    })
+    .filter(Boolean)
+    .join(", ");
+}
+
+function buildNutritionStatus(nutrition) {
+  if (!nutrition) return "";
+  if (nutrition.warning) return nutrition.warning;
+  if (nutrition.perAmount) {
+    const label = describeAmount(nutrition.perAmount);
+    return label ? `Nutrition scaled for ${label}.` : "Nutrition scaled for ingredient amount.";
+  }
+  if (nutrition.perReference) {
+    const label = describeAmount(nutrition.perReference);
+    return label ? `Showing reference nutrition per ${label}.` : "Showing reference nutrition.";
+  }
+  return "";
+}
 
 export default function PropertyPanel({ selectedNode, onChange, nodes, edges, setEdges }) {
   if (!selectedNode) return <div className="p-4 text-sm opacity-70">Select a node to edit its properties.</div>;
   const { type, data } = selectedNode;
   const [nutritionQuery, setNutritionQuery] = useState(data?.label || "");
   const [barcodeQuery, setBarcodeQuery] = useState(data?.nutrition?.barcode || "");
-  const [nutritionStatus, setNutritionStatus] = useState("");
+  const [nutritionStatus, setNutritionStatus] = useState(buildNutritionStatus(data?.nutrition));
   const [nutritionLoading, setNutritionLoading] = useState(false);
 
   useEffect(() => {
     setNutritionQuery(selectedNode?.data?.label || "");
     setBarcodeQuery(selectedNode?.data?.nutrition?.barcode || "");
-    setNutritionStatus("");
+    setNutritionStatus(buildNutritionStatus(selectedNode?.data?.nutrition));
     setNutritionLoading(false);
   }, [selectedNode?.id]);
 
-  const set = (k, v) => onChange({ ...selectedNode, data: { ...data, [k]: v } });
+  const set = (k, v) => {
+    const nextData = { ...data, [k]: v };
+    if (k === "amount" && data?.nutrition) {
+      const adjusted = adjustNutritionForAmount(data.nutrition, v);
+      nextData.nutrition = adjusted;
+      setNutritionStatus(buildNutritionStatus(adjusted));
+    }
+    onChange({ ...selectedNode, data: nextData });
+  };
+
   const incoming = type === NodeKinds.STEP ? edges.filter((e) => e.target === selectedNode.id) : [];
   const getNode = (id) => nodes.find((n) => n.id === id);
   const setEdgeField = (edgeId, k, v) =>
@@ -41,10 +107,12 @@ export default function PropertyPanel({ selectedNode, onChange, nodes, edges, se
         mode === "barcode"
           ? await fetchNutritionByBarcode(trimmedBarcode)
           : await fetchNutrition(trimmedName);
-      onChange({ ...selectedNode, data: { ...data, nutrition: info } });
-      if (info.barcode) setBarcodeQuery(info.barcode);
-      if (info.productName && !nutritionQuery) setNutritionQuery(info.productName);
-      setNutritionStatus(`Nutrition loaded${info.productName ? ` for ${info.productName}` : ""}.`);
+      const adjusted = adjustNutritionForAmount(info, data?.amount || "");
+      const nextData = { ...data, nutrition: adjusted };
+      onChange({ ...selectedNode, data: nextData });
+      if (adjusted.barcode) setBarcodeQuery(adjusted.barcode);
+      if (adjusted.productName && !nutritionQuery) setNutritionQuery(adjusted.productName);
+      setNutritionStatus(buildNutritionStatus(adjusted) || `Nutrition loaded${adjusted.productName ? ` for ${adjusted.productName}` : ""}.`);
     } catch (err) {
       const fallbackMsg = mode === "barcode" ? "Enter a valid barcode." : "Check the ingredient name.";
       setNutritionStatus(err?.message || `Lookup failed. ${fallbackMsg}`);
@@ -113,6 +181,39 @@ export default function PropertyPanel({ selectedNode, onChange, nodes, edges, se
               </button>
             )}
             {nutritionStatus && <div className="mt-2 text-xs text-gray-600">{nutritionStatus}</div>}
+            {data?.nutrition && (
+              <div className="mt-3 rounded border bg-white/70 p-2 text-xs">
+                <div className="text-[11px] font-semibold uppercase tracking-wide opacity-70">Nutrition Summary</div>
+                <div className="mt-1">
+                  {data.nutrition.perAmount
+                    ? `For ${describeAmount(data.nutrition.perAmount)}`
+                    : data.nutrition.perReference
+                    ? `Per ${describeAmount(data.nutrition.perReference)}`
+                    : "Nutrition values"}
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-y-1 gap-x-3">
+                  {nutritionMetrics.map((metric) => (
+                    <div key={metric.key}>
+                      <span className="font-semibold">{metric.label}:</span> {formatNumeric(data.nutrition.values?.[metric.key])}
+                      {metric.suffix ? ` ${metric.suffix}` : ""}
+                    </div>
+                  ))}
+                </div>
+                {data.nutrition.perAmount && data.nutrition.perReference && (
+                  <div className="mt-2 text-[10px] text-gray-500">
+                    Reference {describeAmount(data.nutrition.perReference)} -> {summarizeMetrics(data.nutrition.perReference.values)}
+                  </div>
+                )}
+                {data.nutrition.warning && <div className="mt-2 text-[10px] text-amber-700">{data.nutrition.warning}</div>}
+                {data.nutrition.sourceUrl && (
+                  <div className="mt-2 text-[10px]">
+                    <a className="text-blue-600 hover:underline" href={data.nutrition.sourceUrl} target="_blank" rel="noreferrer">
+                      View on Open Food Facts
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </>
       )}
