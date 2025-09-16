@@ -15,6 +15,7 @@ import { NodeKinds } from "../constants/nodeKinds";
 import IngredientNode from "./nodes/IngredientNode";
 import StepNode from "./nodes/StepNode";
 import OutputNode from "./nodes/OutputNode";
+import StartHereNode from "./nodes/StartHereNode";
 import PropertyPanel from "./PropertyPanel";
 import { uid } from "../utils/uid";
 import { validateGraph, simulateExecute, computeNodeNutrition } from "../utils/graphUtils";
@@ -22,6 +23,7 @@ import { exportRecipe, importRecipe } from "../utils/recipeIO";
 import { runTests } from "../utils/testUtils";
 
 const nodeTypes = {
+  [NodeKinds.START]: StartHereNode,
   [NodeKinds.INGREDIENT]: IngredientNode,
   [NodeKinds.STEP]: StepNode,
   [NodeKinds.OUTPUT]: OutputNode,
@@ -55,6 +57,7 @@ export default function InnerApp() {
       const tgt = connection.target ? findNode(connection.target) : null;
       if (!src || !tgt) return true;
       if (src.id === tgt.id) return false;
+      if (tgt.type === NodeKinds.START) return false;
       if (tgt.type === NodeKinds.INGREDIENT) return false;
       if (src.type === NodeKinds.OUTPUT) return false;
       return true;
@@ -69,7 +72,14 @@ export default function InnerApp() {
     const randomViewportPoint = { x: 200 + Math.random() * 200, y: 100 + Math.random() * 200 };
     const position = rfInstance && typeof rfInstance.project === "function" ? rfInstance.project(randomViewportPoint) : { x: 250, y: 150 };
     const id = uid(type.slice(0, 3));
-    const base = { id, type, position, data: { label: type.charAt(0).toUpperCase() + type.slice(1) } };
+    const defaultLabels = {
+    [NodeKinds.START]: "Start",
+    [NodeKinds.INGREDIENT]: "Ingredient",
+    [NodeKinds.STEP]: "Step",
+    [NodeKinds.OUTPUT]: "Output",
+  };
+    const base = { id, type, position, data: { label: defaultLabels[type] || type } };
+    if (type === NodeKinds.START) base.data.note = "Beginning";
     if (type === NodeKinds.INGREDIENT) base.data.amount = "100 g";
     if (type === NodeKinds.OUTPUT) base.data.serves = 2;
     setNodes((ns) => [...ns, base]);
@@ -170,6 +180,7 @@ export default function InnerApp() {
             <Controls />
             <Panel position="top-left">
               <div className="flex flex-wrap gap-2 bg-white/90 backdrop-blur p-2 rounded-xl shadow">
+                <button className="px-3 py-1 rounded-lg border" onClick={() => addNode(NodeKinds.START)}>+ Start</button>
                 <button className="px-3 py-1 rounded-lg border" onClick={() => addNode(NodeKinds.INGREDIENT)}>+ Ingredient</button>
                 <button className="px-3 py-1 rounded-lg border" onClick={() => addNode(NodeKinds.STEP)}>+ Step</button>
                 <button className="px-3 py-1 rounded-lg border" onClick={() => addNode(NodeKinds.OUTPUT)}>+ Output</button>
@@ -210,3 +221,10 @@ export default function InnerApp() {
     </div>
   );
 }
+
+
+
+
+
+
+
