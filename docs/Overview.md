@@ -69,7 +69,9 @@ The toolbar buttons in `InnerApp.jsx` map to these functions:
 - **Export** - `exportRecipe` serializes nodes/edges to JSON and copies to clipboard.
 - **Import** - Prompts for JSON, parses via `importRecipe`, and sets state.
 - **Run Tests** - Invokes `runTests`, logging smoke-test results.
-- **Map Toggle / Delete Selection** - UI conveniences provided by React Flow and local state.
+- **Map Toggle** - Toggles the React Flow minimap visibility
+- **Macros Toggle** - Shows/hides nutrition and macro information across all nodes
+- **Delete Selection** - Removes selected nodes and their connections
 
 ## 6. Nutrition Lookup
 
@@ -81,7 +83,9 @@ Ingredient nutrition is handled in `PropertyPanel.jsx` and `utils/nutritionProvi
 
 Detailed instructions live in [docs/NutritionLookup.md](./NutritionLookup.md).
 
-## 7. Nutrition Propagation
+## 7. Nutrition Display and Propagation
+
+The app provides a global toggle for macro visibility in the toolbar ("Macros: Show/Hide"), which controls the display of nutrition information across all nodes. When enabled:
 
 Once nutrition is attached to ingredients, `computeNodeNutrition` (in `utils/graphUtils.js`) propagates macro totals through the graph:
 
@@ -89,7 +93,7 @@ Once nutrition is attached to ingredients, `computeNodeNutrition` (in `utils/gra
 - Step nodes aggregate the scaled macros from all incoming edges, exposing the sum via `data.computedNutrition`.
 - Output nodes accumulate macros from every upstream branch, enabling the UI to display total calories, protein, fat, and carbs for the final dish.
 
-`InnerApp.jsx` stores the computed totals on each node so that `StepNode` and `OutputNode` components can render the values in real time.
+`InnerApp.jsx` stores the computed totals on each node and manages the global macro visibility state (`showMacros`). Node components receive this visibility prop and conditionally render their nutrition information based on its value, allowing users to focus on recipe structure or nutritional details as needed.
 
 ## 8. Validation & Simulation
 

@@ -1,6 +1,10 @@
 # Recipe Flow
 
-A node-based recipe builder that allows you to create, visualize, and validate cooking recipes using a visual flow editor. Built with React, React Flow, and Tailwind CSS.
+A node-based recipe builder that allows you to crea6. Use the toolbar buttons to validate, simulate, import/export, and run tests
+7. Toggle macro visibility using the "Macros: Show/Hide" button in the toolbar
+8. For ingredient nodes, use the Nutrition Lookup card to fetch macro data from Open Food Facts (optional)
+
+## Nutrition Lookupvisualize, and validate cooking recipes using a visual flow editor. Built with React, React Flow, and Tailwind CSS.
 
 # Join our Discord Server
 
@@ -14,6 +18,7 @@ https://discord.gg/DReB3dFT
 - Recipe validation for missing inputs, invalid links, and cycles
 - Import/Export recipes as JSON
 - Nutrition lookup (powered by Open Food Facts) for ingredient macros
+- Toggleable macro visibility across all nodes
 - Built-in smoke tests that exercise the core graph utilities
 
 ## Prerequisites
