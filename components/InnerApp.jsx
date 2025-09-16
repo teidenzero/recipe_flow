@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import ReactFlow, {
   addEdge,
   Background,
@@ -17,7 +17,7 @@ import StepNode from "./nodes/StepNode";
 import OutputNode from "./nodes/OutputNode";
 import PropertyPanel from "./PropertyPanel";
 import { uid } from "../utils/uid";
-import { validateGraph, simulateExecute } from "../utils/graphUtils";
+import { validateGraph, simulateExecute, computeNodeNutrition } from "../utils/graphUtils";
 import { exportRecipe, importRecipe } from "../utils/recipeIO";
 import { runTests } from "../utils/testUtils";
 
@@ -26,6 +26,18 @@ const nodeTypes = {
   [NodeKinds.STEP]: StepNode,
   [NodeKinds.OUTPUT]: OutputNode,
 };
+
+const MACRO_KEYS = ["calories", "protein", "fat", "carbs"];
+
+function macrosEqual(a, b) {
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  return MACRO_KEYS.every((key) => {
+    const av = Number(a[key] || 0);
+    const bv = Number(b[key] || 0);
+    return Math.abs(av - bv) < 1e-6;
+  });
+}
 
 export default function InnerApp() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -110,6 +122,30 @@ export default function InnerApp() {
     const result = runTests((t) => setLog(t));
     console.log("Test summary", result);
   };
+
+  useEffect(() => {
+    if (!nodes.length) return;
+    const macrosMap = computeNodeNutrition(nodes, edges);
+    let changed = false;
+    const updated = nodes.map((node) => {
+      const macros = macrosMap[node.id];
+      const existing = node.data?.computedNutrition;
+      if (!macros && !existing) return node;
+      if (macrosEqual(macros, existing)) return node;
+      changed = true;
+      const nextData = { ...node.data };
+      if (macros) {
+        nextData.computedNutrition = macros;
+      } else {
+        delete nextData.computedNutrition;
+      }
+      return { ...node, data: nextData };
+    });
+    if (changed) {
+      setNodes(updated);
+    }
+  }, [nodes, edges, setNodes]);
+
   return (
     <div className="w-full h-[80vh] grid grid-cols-12 gap-3">
       <div className="col-span-9 rounded-2xl border overflow-hidden">

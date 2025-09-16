@@ -32,6 +32,7 @@ export function getUnitInfo(unit) {
 const NUMBER_UNIT_REGEX = /([0-9]+(?:[.,][0-9]+)?)\s*([a-zA-Z]+)/g;
 
 export function parseQuantityAndUnit(text) {
+  NUMBER_UNIT_REGEX.lastIndex = 0;
   if (!text || typeof text !== "string") return null;
   let match;
   while ((match = NUMBER_UNIT_REGEX.exec(text))) {

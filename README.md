@@ -2,6 +2,10 @@
 
 A node-based recipe builder that allows you to create, visualize, and validate cooking recipes using a visual flow editor. Built with React, React Flow, and Tailwind CSS.
 
+# Join our Discord Server
+
+https://discord.gg/DReB3dFT
+
 ## Features
 
 - Visual recipe building with a drag-and-drop flow editor
@@ -102,9 +106,8 @@ recipe_flow/
 ## Contributing
 
 Feel free to open issues and submit pull requests. Please make sure to run tests before submitting changes.
+For contribution guidelines, see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## License
 
 ISC
-
-For contribution guidelines, see [CONTRIBUTING.md](./CONTRIBUTING.md).

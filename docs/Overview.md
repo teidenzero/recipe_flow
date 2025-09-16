@@ -27,7 +27,7 @@ recipe_flow/
 |-- constants/
 |   |-- nodeKinds.js        # Enum of node type identifiers
 |-- utils/
-|   |-- graphUtils.js       # Validation and execution helpers
+|   |-- graphUtils.js       # Validation, execution, nutrition helpers
 |   |-- recipeIO.js         # Import/export helpers
 |   |-- testUtils.js        # Built-in smoke tests
 |   |-- uid.js              # ID generator
@@ -38,12 +38,12 @@ recipe_flow/
 
 ## 3. Application Flow
 
-1. **Entry Point (`main.jsx`)** – Mounts `<App />`.
-2. **App shell (`components/App.jsx`)** – Provides layout and renders `<InnerApp />`.
-3. **Editor (`components/InnerApp.jsx`)** – Configures React Flow (nodes, edges, selection, toolbar actions).
-4. **Nodes (`components/nodes/*.jsx`)** – Render individual node types.
-5. **Property Panel (`components/PropertyPanel.jsx`)** – Displays editable fields for the selected node, including nutrition lookup for ingredients.
-6. **Utilities (`utils/*`)** – Shared functions for validation, import/export, nutrition, etc.
+1. **Entry Point (`main.jsx`)** - Mounts `<App />`.
+2. **App shell (`components/App.jsx`)** - Provides layout and renders `<InnerApp />`.
+3. **Editor (`components/InnerApp.jsx`)** - Configures React Flow (nodes, edges, selection, toolbar actions).
+4. **Nodes (`components/nodes/*.jsx`)** - Render individual node types.
+5. **Property Panel (`components/PropertyPanel.jsx`)** - Displays editable fields for the selected node, including nutrition lookup for ingredients.
+6. **Utilities (`utils/*`)** - Shared functions for validation, import/export, nutrition, etc.
 
 ## 4. Node Architecture
 
@@ -64,12 +64,12 @@ Each node component receives `data` (user-provided fields) and renders its UI. A
 
 The toolbar buttons in `InnerApp.jsx` map to these functions:
 
-- **Validate** – `validateGraph` checks node/edge rules and cycles.
-- **Simulate** – `simulateExecute` produces a textual recipe log.
-- **Export** – `exportRecipe` serializes nodes/edges to JSON and copies to clipboard.
-- **Import** – Prompts for JSON, parses via `importRecipe`, and sets state.
-- **Run Tests** – Invokes `runTests`, logging smoke-test results.
-- **Map Toggle / Delete Selection** – UI conveniences provided by React Flow and local state.
+- **Validate** - `validateGraph` checks node/edge rules and cycles.
+- **Simulate** - `simulateExecute` produces a textual recipe log.
+- **Export** - `exportRecipe` serializes nodes/edges to JSON and copies to clipboard.
+- **Import** - Prompts for JSON, parses via `importRecipe`, and sets state.
+- **Run Tests** - Invokes `runTests`, logging smoke-test results.
+- **Map Toggle / Delete Selection** - UI conveniences provided by React Flow and local state.
 
 ## 6. Nutrition Lookup
 
@@ -77,18 +77,28 @@ Ingredient nutrition is handled in `PropertyPanel.jsx` and `utils/nutritionProvi
 
 - Search by name (dropdown of up to 50 Open Food Facts matches with calories and serving units).
 - Fetch by barcode for a direct match.
-- Apply a result, which is then scaled to the node’s `amount` using unit conversion logic in `utils/unitConversion.js`.
+- Apply a result, which is then scaled to the node's `amount` using unit conversion logic in `utils/unitConversion.js`.
 
 Detailed instructions live in [docs/NutritionLookup.md](./NutritionLookup.md).
 
-## 7. Validation & Simulation
+## 7. Nutrition Propagation
 
-- `validateGraph(nodes, edges)` – Ensures every output has inputs, ingredient nodes have no incoming edges, steps have at least one input, and no cycles exist (via `topologicalSort`).
-- `simulateExecute(nodes, edges)` – Traverses the DAG in topological order, generating human-readable steps. Ingredient labels and edge `useAmount` data feed into the output text.
+Once nutrition is attached to ingredients, `computeNodeNutrition` (in `utils/graphUtils.js`) propagates macro totals through the graph:
+
+- Ingredient macros are scaled according to edge `useAmount` values (with unit conversion) before flowing into step nodes.
+- Step nodes aggregate the scaled macros from all incoming edges, exposing the sum via `data.computedNutrition`.
+- Output nodes accumulate macros from every upstream branch, enabling the UI to display total calories, protein, fat, and carbs for the final dish.
+
+`InnerApp.jsx` stores the computed totals on each node so that `StepNode` and `OutputNode` components can render the values in real time.
+
+## 8. Validation & Simulation
+
+- `validateGraph(nodes, edges)` - Ensures every output has inputs, ingredient nodes have no incoming edges, steps have at least one input, and no cycles exist (via `topologicalSort`).
+- `simulateExecute(nodes, edges)` - Traverses the DAG in topological order, generating human-readable steps. Ingredient labels and edge `useAmount` data feed into the output text.
 
 These functions are used by UI buttons and can be reused in future automation (e.g., exporting to PDF).
 
-## 8. Import/Export Format
+## 9. Import/Export Format
 
 `utils/recipeIO.js` defines the JSON schema:
 
@@ -115,32 +125,32 @@ These functions are used by UI buttons and can be reused in future automation (e
 
 When importing, the utility ensures edges get default styles (bezier, arrow heads) and IDs if missing.
 
-## 9. Styling
+## 10. Styling
 
 Tailwind CSS classes are used throughout components. Global CSS lives in `src/styles.css`. If you add Tailwind plugins or custom themes, update `tailwind.config.js` and `postcss.config.js`.
 
-## 10. Testing
+## 11. Testing
 
 `utils/testUtils.js` bundles a set of smoke tests that run when the user clicks **Run Tests**. They cover:
 
 - Graph validation
 - Simulation logging
 - Import/export round-trips
-- Nutrition extraction and scaling logic
+- Nutrition extraction, scaling, and propagation
 
 You can add more assertions to this file or wire a full testing framework (e.g., Vitest) if deeper coverage is needed.
 
-## 11. Deployment
+## 12. Deployment
 
 The project is configured for GitHub Pages:
 
 1. `npm run deploy` runs `vite build` then publishes `dist/` via `gh-pages`.
-2. Ensure the repository’s Pages setting points to the `gh-pages` branch.
+2. Ensure the repository's Pages setting points to the `gh-pages` branch.
 3. Links and asset paths are fixed by setting `base: "/recipe_flow/"` in `vite.config.js`.
 
 Alternate hosting options (Netlify, Vercel) only require pointing the build command to `npm run build` and publishing the `dist/` directory.
 
-## 12. Extending the App
+## 13. Extending the App
 
 Ideas for modular extensions:
 
@@ -151,7 +161,7 @@ Ideas for modular extensions:
 
 When sharing modules, include documentation similar to `docs/NutritionLookup.md` so contributors understand configuration and API usage.
 
-## 13. Contributing
+## 14. Contributing
 
 - Fork the repo, clone locally, and run `npm install`.
 - Use `npm run dev` for interactive development.
@@ -159,7 +169,7 @@ When sharing modules, include documentation similar to `docs/NutritionLookup.md`
 - Update documentation for any new features (docs are located under `docs/`).
 - Submit pull requests with a clear summary and screenshots if the UI changes.
 
-## 14. Resources
+## 15. Resources
 
 - [React Flow Docs](https://reactflow.dev)
 - [Tailwind CSS Docs](https://tailwindcss.com/docs)
