@@ -106,3 +106,5 @@ Feel free to open issues and submit pull requests. Please make sure to run tests
 ## License
 
 ISC
+
+For contribution guidelines, see [CONTRIBUTING.md](./CONTRIBUTING.md).
