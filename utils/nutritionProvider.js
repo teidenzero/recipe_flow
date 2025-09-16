@@ -2,18 +2,14 @@ import { convertToBase, getUnitInfo, getUnitType, normalizeUnit, parseQuantityAn
 
 const SEARCH_URL = "https://world.openfoodfacts.org/cgi/search.pl";
 const PRODUCT_URL = "https://world.openfoodfacts.org/api/v0/product";
+const DEFAULT_SEARCH_LIMIT = 50;
 
 export async function fetchNutrition(label) {
-  const res = await fetch(
-    `${SEARCH_URL}?search_terms=${encodeURIComponent(label)}&search_simple=1&action=process&json=1&page_size=1`
-  );
-  if (!res.ok) throw new Error(`Open Food Facts API error: ${res.status}`);
-
-  const data = await res.json();
-  const product = data.products?.[0];
-  if (!product) throw new Error("No nutrition data found");
-
-  return extractNutrients(product);
+  const candidates = await searchNutritionCandidates(label, 1);
+  if (!candidates.length) {
+    throw new Error("No nutrition data found");
+  }
+  return candidates[0].nutrition;
 }
 
 export async function fetchNutritionByBarcode(barcode) {
@@ -25,6 +21,26 @@ export async function fetchNutritionByBarcode(barcode) {
   if (!product) throw new Error("No nutrition data found");
 
   return extractNutrients(product);
+}
+
+export async function searchNutritionCandidates(label, limit = DEFAULT_SEARCH_LIMIT) {
+  const pageSize = Math.max(1, Math.min(DEFAULT_SEARCH_LIMIT, limit || DEFAULT_SEARCH_LIMIT));
+  const res = await fetch(
+    `${SEARCH_URL}?search_terms=${encodeURIComponent(label)}&search_simple=1&action=process&json=1&page_size=${pageSize}`
+  );
+  if (!res.ok) throw new Error(`Open Food Facts API error: ${res.status}`);
+
+  const data = await res.json();
+  const products = Array.isArray(data.products) ? data.products : [];
+  return products.slice(0, pageSize).map((product, index) => {
+    const nutrition = extractNutrients(product);
+    return {
+      id: deriveProductId(product, index),
+      productName: buildProductName(product, index),
+      brand: product.brands || null,
+      nutrition,
+    };
+  });
 }
 
 export function extractNutrients(product) {
@@ -209,6 +225,25 @@ function pickNutrient(nutriments, key, reference, preferServing) {
   }
 
   return { value: null, referenceOverride: null };
+}
+
+function deriveProductId(product, index) {
+  return String(
+    product.code ||
+      product.id ||
+      product._id ||
+      product.fdc_id ||
+      product.uuid ||
+      `result-${index}`
+  );
+}
+
+function buildProductName(product, index) {
+  if (product.product_name && product.product_name.trim()) return product.product_name.trim();
+  if (product.generic_name && product.generic_name.trim()) return product.generic_name.trim();
+  if (Array.isArray(product._keywords) && product._keywords.length) return product._keywords[0];
+  if (product.brands && product.brands.trim()) return `${product.brands.trim()} product`;
+  return `Result ${index + 1}`;
 }
 
 function toNumber(value) {

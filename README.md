@@ -39,6 +39,20 @@ npm run dev
 
 Visit http://localhost:5173 (or the URL shown in your terminal) in your browser.
 
+## Deployment (GitHub Pages)
+
+This project is pre-configured to deploy to GitHub Pages at [https://teidenzero.github.io/recipe_flow/](https://teidenzero.github.io/recipe_flow/).
+
+1. Build and publish the site:
+   ```bash
+   npm run deploy
+   ```
+   The `predeploy` script runs `npm run build`, and `deploy` pushes the generated `dist/` folder to the `gh-pages` branch.
+
+2. In the GitHub repository settings, ensure **Pages** is set to deploy from the `gh-pages` branch (this only needs to be done once).
+
+Subsequent runs of `npm run deploy` will update the live site automatically.
+
 ## Usage
 
 1. Click "+ Ingredient" to add ingredients
@@ -54,8 +68,8 @@ Visit http://localhost:5173 (or the URL shown in your terminal) in your browser.
 
 Ingredient nodes include a Nutrition Lookup helper powered by [Open Food Facts](https://world.openfoodfacts.org/).
 
-- Search by product name (defaulting to the ingredient label) or enter a barcode
-- Click "Fetch by name" or "Fetch by barcode" to pull calories, protein, fat, and carbs per 100g (or per serving when available)
+- Search by product name (defaulting to the ingredient label) to review up to 50 matches (calories and serving units) in the dropdown, or enter a barcode for a direct lookup
+- Click "Fetch by name" to populate the dropdown or "Fetch by barcode" for a direct match; selected results include calories, protein, fat, and carbs per 100g (or per serving when available)
 - Nutrition values automatically scale to the ingredient amount when the units are compatible (g, kg, mg, lb, oz, ml, l, tsp, tbsp, cup)
 - The fetched data is stored on the node and displayed both in the inspector and on the ingredient node itself
 - Use "Clear nutrition data" if you want to remove the stored values
@@ -92,4 +106,3 @@ Feel free to open issues and submit pull requests. Please make sure to run tests
 ## License
 
 ISC
-

@@ -1,10 +1,11 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 
 export default defineConfig({
+  base: "/recipe_flow/",
   plugins: [react()],
-  root: './',
+  root: "./",
   css: {
-    postcss: './postcss.config.js'
-  }
-})
+    postcss: "./postcss.config.js",
+  },
+});
