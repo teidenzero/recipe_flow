@@ -21,11 +21,11 @@ import { validateGraph, simulateExecute, computeNodeNutrition } from "../utils/g
 import { exportRecipe, importRecipe } from "../utils/recipeIO";
 import { runTests } from "../utils/testUtils";
 
-const nodeTypes = {
-  [NodeKinds.INGREDIENT]: IngredientNode,
-  [NodeKinds.STEP]: StepNode,
-  [NodeKinds.OUTPUT]: OutputNode,
-};
+const createNodeTypes = (showMacros) => ({
+  [NodeKinds.INGREDIENT]: (props) => <IngredientNode {...props} showMacros={showMacros} />,
+  [NodeKinds.STEP]: (props) => <StepNode {...props} showMacros={showMacros} />,
+  [NodeKinds.OUTPUT]: (props) => <OutputNode {...props} showMacros={showMacros} />,
+});
 
 const MACRO_KEYS = ["calories", "protein", "fat", "carbs"];
 
@@ -48,6 +48,7 @@ export default function InnerApp() {
   const [log, setLog] = useState("");
   const [errors, setErrors] = useState([]);
   const [showMap, setShowMap] = useState(false);
+  const [showMacros, setShowMacros] = useState(true);
   const findNode = (id) => nodes.find((n) => n.id === id);
   const isValidConnection = useCallback(
     (connection) => {
@@ -156,7 +157,7 @@ export default function InnerApp() {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
-            nodeTypes={nodeTypes}
+            nodeTypes={createNodeTypes(showMacros)}
             onSelectionChange={onSelectionChange}
             onInit={(instance) => setRfInstance(instance)}
             isValidConnection={isValidConnection}
@@ -182,6 +183,9 @@ export default function InnerApp() {
                   <button className="px-3 py-1 rounded-lg border" onClick={doDeleteSelected}>Delete Selected</button>
                 )}
                 <button className="px-3 py-1 rounded-lg border" onClick={() => setShowMap((v) => !v)}>Map: {showMap ? "On" : "Off"}</button>
+                <button className="px-3 py-1 rounded-lg border" onClick={() => setShowMacros((v) => !v)}>
+                  Macros: {showMacros ? "Show" : "Hide"}
+                </button>
               </div>
             </Panel>
           </ReactFlow>

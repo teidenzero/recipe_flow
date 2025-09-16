@@ -23,7 +23,7 @@ function hasMacros(macros) {
   return macroMetrics.some((metric) => Number(macros[metric.key] || 0) > 0);
 }
 
-export default function StepNode({ data, id }) {
+export default function StepNode({ data, id, showMacros = true }) {
   const { getEdges, getNodes } = useReactFlow();
   const macros = data?.computedNutrition;
   
@@ -53,7 +53,7 @@ export default function StepNode({ data, id }) {
           ))}
         </div>
       )}
-      {hasMacros(macros) && (
+      {showMacros && hasMacros(macros) && (
         <div className="mt-2 rounded bg-white/60 px-2 py-1 text-[11px] leading-relaxed text-gray-700">
           <div className="font-semibold">Macros</div>
           <div className="mt-1 space-y-1">
